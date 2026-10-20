@@ -1,0 +1,275 @@
+
+### SQL for Data Analytics — 13 Tasks
+
+### Task 1: Comparison Operators
+
+Question: Find Data Analyst job postings with an average yearly salary greater than $100,000.
+
+SQL Query
+
+SELECT
+    job_id,
+    job_title,
+    job_location,
+    salary_year_avg
+FROM job_postings_fact
+WHERE job_title_short = 'Data Analyst'
+  AND salary_year_avg > 100000
+ORDER BY salary_year_avg DESC;
+
+
+### Task 2: Wildcards and Aliases
+
+Question: Display Data Analyst job titles containing the word `Analyst`, along with location and yearly salary.
+
+SQL Query
+
+
+SELECT
+    job_title AS title,
+    job_location AS location,
+    salary_year_avg AS yearly_salary
+FROM job_postings_fact
+WHERE job_title_short = 'Data Analyst'
+  AND job_title LIKE '%Analyst%'
+ORDER BY salary_year_avg DESC NULLS LAST
+LIMIT 20;
+
+### Task 3: Operations and Aggregation
+
+Question: Calculate the number of available yearly salaries, average salary, minimum salary, and maximum salary for Data Analyst jobs.
+
+SQL Query
+
+
+SELECT
+    COUNT(salary_year_avg) AS salary_count,
+    ROUND(AVG(salary_year_avg), 2) AS average_salary,
+    MIN(salary_year_avg) AS minimum_salary,
+    MAX(salary_year_avg) AS maximum_salary
+FROM job_postings_fact
+WHERE job_title_short = 'Data Analyst';
+
+Question: Find Data Analyst job postings for which the average yearly salary is missing.
+
+SQL Query
+
+
+SELECT
+    job_id,
+    job_title,
+    job_location,
+    salary_year_avg
+FROM job_postings_fact
+WHERE job_title_short = 'Data Analyst'
+  AND salary_year_avg IS NULL;
+
+
+### Task 5: Joins
+
+Question: Display Data Analyst job titles, locations, yearly salaries, and company names.
+
+SQL Query
+
+
+SELECT
+    j.job_title,
+    j.job_location,
+    j.salary_year_avg,
+    c.name AS company_name
+FROM job_postings_fact AS j
+LEFT JOIN company_dim AS c
+    ON j.company_id = c.company_id
+WHERE j.job_title_short = 'Data Analyst'
+ORDER BY j.salary_year_avg DESC NULLS LAST
+LIMIT 20;
+
+### Task 6: Date Functions
+
+Question: Display Data Analyst jobs posted during 2023, including the month in which each job was posted.
+
+SQL Query
+
+
+SELECT
+    job_id,
+    job_title,
+    job_posted_date,
+    EXTRACT(MONTH FROM job_posted_date) AS posted_month
+FROM job_postings_fact
+WHERE job_title_short = 'Data Analyst'
+  AND job_posted_date >= DATE '2023-01-01'
+  AND job_posted_date < DATE '2024-01-01'
+ORDER BY job_posted_date;
+
+### Task 7: Subqueries
+
+Question: Find Data Analyst jobs with an average yearly salary greater than the average yearly salary of all Data Analyst jobs.
+
+SQL Query
+
+
+SELECT
+    job_id,
+    job_title,
+    salary_year_avg
+FROM job_postings_fact
+WHERE job_title_short = 'Data Analyst'
+  AND salary_year_avg > (
+      SELECT AVG(salary_year_avg)
+      FROM job_postings_fact
+      WHERE job_title_short = 'Data Analyst'
+  )
+ORDER BY salary_year_avg DESC;
+
+### Task 8: UNION Operator
+
+Question: Combine the distinct job locations for Data Analyst and Business Analyst jobs into one list.
+
+SQL Query
+
+
+SELECT job_location AS location
+FROM job_postings_fact
+WHERE job_title_short = 'Data Analyst'
+
+UNION
+
+SELECT job_location AS location
+FROM job_postings_fact
+WHERE job_title_short = 'Business Analyst'
+
+ORDER BY location;
+
+### Final Project
+
+### Task 9: Top-Paying Data Analyst Jobs
+
+Question: Identify the top 10 highest-paying remote Data Analyst jobs.
+
+SQL Query
+
+
+SELECT
+    j.job_id,
+    j.job_title,
+    j.job_location,
+    j.job_schedule_type,
+    j.salary_year_avg,
+    j.job_posted_date,
+    c.name AS company_name
+FROM job_postings_fact AS j
+LEFT JOIN company_dim AS c
+    ON j.company_id = c.company_id
+WHERE j.job_title_short = 'Data Analyst'
+  AND j.job_location = 'Anywhere'
+  AND j.salary_year_avg IS NOT NULL
+ORDER BY j.salary_year_avg DESC
+LIMIT 10;
+
+### Task 10: Skills Required for Top-Paying Jobs
+
+Question: Identify the skills required for the top 10 highest-paying remote Data Analyst jobs.
+
+SQL Query
+
+
+WITH top_paying_jobs AS (
+    SELECT
+        j.job_id,
+        j.job_title,
+        j.salary_year_avg,
+        c.name AS company_name
+    FROM job_postings_fact AS j
+    LEFT JOIN company_dim AS c
+        ON j.company_id = c.company_id
+    WHERE j.job_title_short = 'Data Analyst'
+      AND j.job_location = 'Anywhere'
+      AND j.salary_year_avg IS NOT NULL
+    ORDER BY j.salary_year_avg DESC
+    LIMIT 10
+)
+SELECT
+    t.job_title,
+    t.salary_year_avg,
+    t.company_name,
+    s.skills AS skill_name
+FROM top_paying_jobs AS t
+INNER JOIN skills_job_dim AS sj
+    ON t.job_id = sj.job_id
+INNER JOIN skills_dim AS s
+    ON sj.skill_id = s.skill_id
+ORDER BY t.salary_year_avg DESC;
+
+
+### Task 11: Most In-Demand Skills
+
+Question: Identify the five most in-demand skills for remote Data Analyst jobs.
+
+SQL Query
+
+
+SELECT
+    s.skills,
+    COUNT(sj.job_id) AS demand_count
+FROM job_postings_fact AS j
+INNER JOIN skills_job_dim AS sj
+    ON j.job_id = sj.job_id
+INNER JOIN skills_dim AS s
+    ON sj.skill_id = s.skill_id
+WHERE j.job_title_short = 'Data Analyst'
+  AND j.job_work_from_home = TRUE
+GROUP BY s.skills
+ORDER BY demand_count DESC
+LIMIT 5;
+
+### Task 12: Highest-Paying Skills
+
+Question: Identify the 25 skills associated with the highest average yearly salaries for remote Data Analyst jobs.
+
+SQL Query
+
+SELECT
+    s.skills,
+    ROUND(AVG(j.salary_year_avg), 0) AS avg_salary
+FROM job_postings_fact AS j
+INNER JOIN skills_job_dim AS sj
+    ON j.job_id = sj.job_id
+INNER JOIN skills_dim AS s
+    ON sj.skill_id = s.skill_id
+WHERE j.job_title_short = 'Data Analyst'
+  AND j.salary_year_avg IS NOT NULL
+  AND j.job_work_from_home = TRUE
+GROUP BY s.skills
+ORDER BY avg_salary DESC
+LIMIT 25;
+
+
+
+Task 13: Most Optimal Skills to Learn
+
+Question: Identify skills that combine job demand with high average yearly salaries for remote Data Analyst jobs.
+
+SQL Query
+
+SELECT
+    s.skill_id,
+    s.skills,
+    COUNT(sj.job_id) AS demand_count,
+    ROUND(AVG(j.salary_year_avg), 0) AS avg_salary
+FROM job_postings_fact AS j
+INNER JOIN skills_job_dim AS sj
+    ON j.job_id = sj.job_id
+INNER JOIN skills_dim AS s
+    ON sj.skill_id = s.skill_id
+WHERE j.job_title_short = 'Data Analyst'
+  AND j.salary_year_avg IS NOT NULL
+  AND j.job_work_from_home = TRUE
+GROUP BY
+    s.skill_id,
+    s.skills
+HAVING COUNT(sj.job_id) > 10
+ORDER BY
+    avg_salary DESC,
+    demand_count DESC
+LIMIT 25;
